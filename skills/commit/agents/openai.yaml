@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit"
+  short_description: "Create one focused Git commit safely"
+  default_prompt: "Use $commit to stage the intended changes and create a single Git commit."
