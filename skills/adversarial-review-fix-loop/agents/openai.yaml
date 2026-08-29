@@ -1,0 +1,4 @@
+interface:
+  display_name: "Adversarial Review Fix Loop"
+  short_description: "Iteratively review, fix, and clarify Git changes"
+  default_prompt: "Use $adversarial-review-fix-loop to review and fix the current working-tree changes, clarify rejected findings, and repeat until no actionable work remains."
