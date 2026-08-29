@@ -1,24 +1,32 @@
 ---
 name: adversarial-review-fix-loop
-description: Repeatedly run an adversarial review of working-tree Git changes, fix supported findings, clarify rejected findings, and stop when no actionable work remains. Use for iterative review-and-fix requests; do not use for review-only requests.
+description: Repeatedly run an adversarial review of working-tree Git changes within a configurable review-pass limit, fix supported findings, and clarify rejected findings. Use for iterative review-and-fix requests; do not use for review-only requests.
 ---
 
 # Adversarial Review Fix Loop
 
-Run a review, apply the qualifying fixes, and review the resulting working tree again. Keep the
-target fixed to the current working tree so every pass covers all accumulated staged, unstaged, and
-untracked changes.
+Run a review, apply the qualifying fixes, and review the resulting working tree again until no edit
+is required or the review-pass limit is reached. Keep the target fixed to the current working tree
+so every pass covers all accumulated staged, unstaged, and untracked changes.
 
 ## Parse the invocation
 
-Treat the invocation tail as optional review focus text and preserve it verbatim across every pass.
-This skill does not accept target-selection options: always review the working tree.
+Accept `$adversarial-review-fix-loop [--max-passes N] [--] [review focus...]`. Use a default of 3
+review passes and accept values from 1 through 10 inclusive. Parse `--max-passes` only before the
+optional `--` delimiter. Reject duplicate options, missing values, non-integer values, and values
+outside the accepted range before starting a review. Remove the control option and optional
+delimiter, then preserve the remaining focus text verbatim across every pass. This skill does not
+accept target-selection options: always review the working tree.
 
 ## Run the loop
 
+Initialize `completed_passes` to 0. Before starting each review, stop when `completed_passes` equals
+`max_passes`; the limit is a maximum, not a target, so any earlier stop condition still applies.
+
 1. Explicitly invoke `$adversarial-review --scope working-tree`, appending the focus text verbatim
    when one was supplied. Wait for that complete child workflow, including its parent-session
-   adjudication, to finish.
+   adjudication, to finish, then increment `completed_passes`. Count only completed child review
+   workflows as passes.
 2. Do not modify files while the child workflow is running. Use its final adjudicated result, not
    the background reviewer's unvalidated report, to decide what to fix.
 3. Build the corrective set from both reviewer findings classified as `Valid` or `Partially valid`
@@ -60,8 +68,13 @@ attempted fix and another edit would be speculative, risky, or outside the user'
 report the residual finding and blocker. Also stop for required user input, unavailable dependencies,
 failed child review execution, or tests that cannot be made reliable within scope.
 
+When the pass limit is reached after applying edits and running their checks, do not start another
+review. Report that the limit ended the loop and that the final edits were not re-reviewed. Do not
+describe that state as having no findings. If the final allowed pass requires no edit, report the
+clean result instead of treating the limit as the termination reason.
+
 ## Return the result
 
-Summarize the number of completed review passes, the findings fixed, the verification performed, and
-any residual findings or risks. When the final pass has no reviewer or parent-added findings, say so
-directly.
+Summarize the completed and maximum review-pass counts, the termination reason, the findings fixed,
+the verification performed, whether the final edits were re-reviewed, and any residual findings or
+risks. When the final pass has no reviewer or parent-added findings, say so directly.
