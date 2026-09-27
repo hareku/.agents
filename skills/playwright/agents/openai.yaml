@@ -1,0 +1,3 @@
+interface:
+  display_name: "Playwright"
+  short_description: "Windows Chrome を Playwright MCP で操作する共通スキル"
