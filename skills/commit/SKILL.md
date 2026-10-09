@@ -1,11 +1,20 @@
 ---
 name: commit
-description: Create one focused local Git commit from the intended working-tree changes. Use when the user asks to commit changes or invokes $commit; do not use for amend, rebase, push, tagging, or requests that only discuss commits.
+description: Create one focused Git commit from the intended working-tree changes, optionally pushing it when explicitly requested. Use when the user asks to commit changes or invokes $commit; do not use for amend, rebase, push-only requests, tagging, or requests that only discuss commits.
 ---
 
 # Commit
 
-Create exactly one local commit containing the user's intended changes. Do not push it.
+Create exactly one local commit containing the user's intended changes. Push it only when enabled
+by the user's request.
+
+## Options
+
+- `$commit`: create a local commit without pushing.
+- `$commit --push`: create a local commit, then push the current branch after the commit succeeds.
+
+An explicit natural-language request to commit and push also enables `--push`. A request to commit
+alone does not. Honor any remote or destination branch explicitly supplied by the user.
 
 ## Inspect the repository
 
@@ -37,4 +46,25 @@ large binary files unless the user clearly intends to commit them.
 Do not bypass hooks. If the commit fails, report the error and the resulting working-tree state
 instead of retrying with weaker checks or creating a different commit.
 
-After success, report the new commit hash and subject, plus any remaining uncommitted changes.
+## Push when requested
+
+After the commit succeeds, perform these steps only when `--push` is enabled:
+
+1. Resolve the destination from the user's explicit request, otherwise the current branch's
+   configured upstream. If there is no upstream and exactly one remote, use that remote and the
+   current branch name. Ask for the missing destination only when it cannot be inferred unambiguously;
+   stop and explain if there is no usable remote or the checkout is detached.
+2. Refresh the destination branch's remote state if it exists and inspect the outgoing commits,
+   including any pre-existing local commits. If pushing would publish unrelated commits not clearly
+   covered by the request, clarify the scope before pushing.
+3. Run a normal push with an explicit remote and `HEAD:refs/heads/<destination-branch>` refspec so
+   only the intended branch is pushed. Set the upstream with `--set-upstream` when the current branch
+   has none. Do not force-push, push tags or other branches, or bypass hooks.
+
+If destination inspection or the push fails, keep the successful local commit and report the error.
+Do not reset or amend the commit, automatically pull or rebase, or retry with weaker checks.
+
+## Report the result
+
+Report the new commit hash and subject, plus any remaining uncommitted changes. When push was
+requested, also report its destination and whether it succeeded or why it could not be completed.
