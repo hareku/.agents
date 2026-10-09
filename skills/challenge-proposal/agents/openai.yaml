@@ -1,0 +1,6 @@
+interface:
+  display_name: "Challenge Proposal"
+  short_description: "Assess change proposals before implementation"
+  default_prompt: "Use $challenge-proposal to assess the proposed change against its goal and current evidence, then recommend whether to adopt, revise, or decline it without implementing it."
+policy:
+  allow_implicit_invocation: false
