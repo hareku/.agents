@@ -16,28 +16,47 @@ by the user's request.
 An explicit natural-language request to commit and push also enables `--push`. A request to commit
 alone does not. Honor any remote or destination branch explicitly supplied by the user.
 
+## Keep the common path short
+
+- Reuse applicable instructions, commit conventions, reviewed changes, and validation results from
+  this conversation when still current. Get fresh Git state, but do not rediscover known context or
+  reread unchanged, reviewed diffs. If contents or scope are uncertain, inspect the affected changes.
+- Batch independent read-only Git checks into one tool call and run them in parallel when supported.
+  Keep staging, staged verification, committing, and pushing sequential.
+- Do not start another code review or rerun tests solely because a commit was requested. Perform
+  additional checks only when applicable instructions, unvalidated changes, or unresolved concerns
+  require them.
+
 ## Inspect the repository
 
 From the user's current working directory:
 
-1. Confirm it is a Git worktree and read the applicable `AGENTS.md` instructions.
-2. Inspect `git status --short --branch`, the staged diff, the unstaged diff, untracked files,
-   the current branch, and the subjects of the 10 most recent commits.
-3. Stop and explain the problem if there are unresolved conflicts or no changes to commit.
+1. Confirm it is a Git worktree and follow the applicable `AGENTS.md` instructions, reusing those
+   already read in this conversation.
+2. Get `git status --short --branch` and staged/unstaged path lists with `git diff --cached --name-status`
+   and `git diff --name-status`. The status also identifies the current branch and untracked paths.
+   Stop and explain the problem if there are unresolved conflicts or no changes to commit.
+3. Inspect only intended changes whose contents have not been reviewed or are uncertain, including
+   untracked file contents. If no commit message was supplied and the repository's commit style is
+   unknown, read the subjects of the 3 most recent commits with `git log -3 --format=%s`.
 
 Treat changes that were already staged as intended for the commit unless the user says otherwise.
 Do not unstage or overwrite them. Include unstaged and untracked paths only when they clearly belong
 to the same requested change. If unrelated changes exist, leave them untouched; ask the user only
 when the intended commit boundary cannot be inferred safely.
 
-Inspect a path before staging it. Do not stage likely secrets, credentials, generated artifacts, or
-large binary files unless the user clearly intends to commit them.
+Use the existing review or inspect a path before staging it. Do not stage likely secrets,
+credentials, generated artifacts, or large binary files unless the user clearly intends to commit them.
 
 ## Create the commit
 
-1. Stage the intended paths with explicit pathspecs.
-2. Re-read `git status --short` and `git diff --cached` to verify the exact commit contents. Stop if
-   the staged diff is empty or contains unintended changes.
+1. Stage only remaining intended changes with explicit pathspecs; skip staging if the index already
+   contains the complete intended change. For files mixing intended and unrelated changes, preserve partial
+   staging and select only the intended hunks instead of adding the whole file.
+2. Check fresh `git status --short` and `git diff --cached --stat` to confirm the staged paths,
+   change sizes, and nonempty diff. Reuse reviewed contents; read the affected staged diff only for
+   unreviewed contents, uncertain hunks, or unexpected staged state. Path lists and statistics alone
+   do not establish that contents are reviewed. Stop if the diff is empty or contains unintended changes.
 3. Use the user's commit message when one was supplied. Otherwise, infer a concise message from the
    staged diff and follow the repository's recent commit style. Describe the change, not the process,
    and do not mention an AI or assistant.
